@@ -98,8 +98,19 @@
 </style>
 </head>
 <body>
-  
-<header>
+<div id="loginScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;">
+  <div class="card" style="width:320px;text-align:center">
+    <h2>Connexion</h2>
+    <label for="pwdInput">Mot de passe</label>
+    <input type="password" id="pwdInput" placeholder="Entrez le mot de passe" />
+    <div class="actions" style="margin-top:12px;justify-content:center">
+      <button id="btnLogin" class="btn primary">Connecter</button>
+    </div>
+    <div id="loginStatus" class="hint" style="margin-top:8px"></div>
+  </div>
+</div>
+<div class="app" style="display:none" id="appMain">
+  <header>
   <div class="brand">
     <div class="logo">JNK</div>
     <div>
@@ -117,32 +128,6 @@
     <div class="badge" id="serverStatus">Connexion serveur : inconnue</div>
     <div style="color:var(--muted);font-size:13px">v1.0</div>
   </div>
-</header>
-  
-<div id="loginScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;">
-  <div class="card" style="width:320px;text-align:center">
-    <h2>Connexion</h2>
-    <label for="pwdInput">Mot de passe</label>
-    <input type="password" id="pwdInput" placeholder="Entrez le mot de passe" />
-    <div class="actions" style="margin-top:12px;justify-content:center">
-      <button id="btnLogin" class="btn primary">Connecter</button>
-    </div>
-    <div id="loginStatus" class="hint" style="margin-top:8px"></div>
-  </div>
-</div>
-<div class="app" style="display:none" id="appMain">
-  <header>
-    <div class="brand">
-      <div class="logo">JNK</div>
-      <div>
-        <h1>JNK-PO — Gestion de Base Politique</h1>
-        <div class="hint">Application de gestion — Hon. Josue Nkomo Kabemba</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center">
-      <div class="badge" id="serverStatus">Connexion serveur : inconnue</div>
-      <div style="color:var(--muted);font-size:13px">v1.0</div>
-    </div>
   </header>
 
   <nav class="nav" aria-label="menu">
@@ -881,6 +866,7 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
 
 
 
