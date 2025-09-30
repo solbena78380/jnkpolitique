@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  
+<!-- PWA Configuration (COMME SCK) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6ee7b7">
+
+<!-- iOS Specific Tags (COMME SCK) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="JNK-PO">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+  
 <title>JNK-PO — Gestion de base politique</title>
 <style>
   :root{
@@ -85,22 +96,29 @@
     input, select, textarea { font-size: 16px; } /* Évite le zoom iOS */
   }
 </style>
-<!-- PWA Configuration (EXACTEMENT comme SCK) -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#6ee7b7">
-
-<!-- iOS Specific Tags (COMME SCK) -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="JNK-PO">
-<link rel="apple-touch-icon" href="icons/icon-192x192.png">
-
-<!-- BOUTON DANS LE HEADER (COMME SCK) -->
-<button id="installButton" style="display:none; margin-left:auto; background:var(--accent); color:#062024; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600">
-  📲 Installer l'app
-</button>
 </head>
 <body>
+  
+<header>
+  <div class="brand">
+    <div class="logo">JNK</div>
+    <div>
+      <h1>JNK-PO — Gestion de Base Politique</h1>
+      <div class="hint">Application de gestion — Hon. Josue Nkomo Kabemba</div>
+    </div>
+    
+    <!-- BOUTON D'INSTALLATION - EXACTEMENT COMME SCK -->
+    <button id="installButton" style="display:none; margin-left:auto; background:var(--accent); color:#062024; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600">
+      📲 Installer l'app
+    </button>
+  </div>
+  
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="badge" id="serverStatus">Connexion serveur : inconnue</div>
+    <div style="color:var(--muted);font-size:13px">v1.0</div>
+  </div>
+</header>
+  
 <div id="loginScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;">
   <div class="card" style="width:320px;text-align:center">
     <h2>Connexion</h2>
@@ -797,71 +815,73 @@ async function sendToServer(action, payload, formId=null){
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
 </script>
 <script>
-// ========== PWA INSTALLATION - CODE SCK ==========
+// ========== PWA INSTALLATION - CODE EXACT DE SCK ==========
 let deferredPrompt;
 const installButton = document.getElementById('installButton');
 
 window.addEventListener('beforeinstallprompt', (e) => {
   console.log('📱 PWA prêt pour installation');
+  // Empêcher le mini-infobar de apparaître sur mobile
   e.preventDefault();
+  // Stash the event so it can be triggered later.
   deferredPrompt = e;
+  // Montrer le bouton d'installation
+  installButton.style.display = 'block';
   
-  // AFFICHER DIRECTEMENT le bouton
-  if (installButton) {
-    installButton.style.display = 'block';
-    console.log('✅ Bouton d installation affiché');
-  }
-});
-
-// Gestion du clic
-if (installButton) {
   installButton.addEventListener('click', async () => {
-    if (!deferredPrompt) {
-      console.log('❌ Aucune invite d installation disponible');
-      return;
+    // Masquer le bouton
+    installButton.style.display = 'none';
+    // Montrer l'invite d'installation
+    deferredPrompt.prompt();
+    // Attendre que l'utilisateur réponde à l'invite
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('L\'utilisateur a accepté l\'installation');
+    } else {
+      console.log('L\'utilisateur a refusé l\'installation');
     }
     
-    console.log('🔄 Lancement de l installation...');
-    installButton.style.display = 'none';
-    deferredPrompt.prompt();
-    
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log('Résultat installation:', outcome);
-    
+    // On a utilisé l'invite, on peut la vider
     deferredPrompt = null;
   });
-}
+});
 
-// Cacher si déjà installé
 window.addEventListener('appinstalled', () => {
-  console.log('🎉 PWA installé!');
-  if (installButton) installButton.style.display = 'none';
+  // Cacher le bouton d'installation
+  installButton.style.display = 'none';
+  // Log l'installation
+  console.log('JNK-PO a été installé avec succès');
+  // Nettoyer la variable
   deferredPrompt = null;
 });
 
-// ========== SERVICE WORKER COMME SCK ==========
+// Vérifier si l'app est déjà installée
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  installButton.style.display = 'none';
+}
+
+// ========== SERVICE WORKER - CODE EXACT DE SCK ==========
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
+  window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(function(registration) {
-        console.log('✅ Service Worker enregistré avec scope:', registration.scope);
+      .then(registration => {
+        console.log('SW enregistré:', registration);
+        
+        // Vérification périodique des mises à jour (COMME SCK)
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000); // Toutes les heures
       })
-      .catch(function(error) {
-        console.log('❌ Erreur Service Worker:', error);
+      .catch(registrationError => {
+        console.log('Échec enregistrement SW:', registrationError);
       });
   });
 }
-
-// Vérification manuelle pour debug
-setTimeout(() => {
-  console.log('=== DEBUG PWA ===');
-  console.log('Bouton install:', installButton ? 'Trouvé' : 'Non trouvé');
-  console.log('deferredPrompt:', deferredPrompt ? 'Prêt' : 'Non prêt');
-  console.log('Service Worker:', 'serviceWorker' in navigator ? 'Supporté' : 'Non supporté');
-}, 2000);
 </script>
 </body>
 </html>
+
 
 
 
