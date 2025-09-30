@@ -3,23 +3,6 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#6ee7b7">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="JNK-PO">
-<link rel="apple-touch-icon" href="/icons/icon-152x152.png">
-
-<!-- Viewport amélioré -->
-<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover">
-
-<!-- Préchargement des polices -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
 <title>JNK-PO — Gestion de base politique</title>
 <style>
   :root{
@@ -102,6 +85,18 @@
     input, select, textarea { font-size: 16px; } /* Évite le zoom iOS */
   }
 </style>
+<div class="brand">
+  <div class="logo">JNK</div>
+  <div>
+    <h1>JNK-PO — Gestion de Base Politique</h1>
+    <div class="hint">Application de gestion — Hon. Josue Nkomo Kabemba</div>
+  </div>
+  
+  <!-- BOUTON D'INSTALLATION - AJOUTEZ CECI -->
+  <button id="installButton" style="display:none; margin-left:auto; background:var(--accent); color:#062024; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600">
+    📲 Installer l'app
+  </button>
+</div>
 </head>
 <body>
 <div id="loginScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;">
@@ -799,64 +794,79 @@ async function sendToServer(action, payload, formId=null){
    ------------------------------ */
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
 </script>
-<!-- Service Worker Registration -->
-<!-- Installation PWA - Code corrigé -->
 <script>
-// Gestion de l'installation PWA - VERSION CORRIGÉE
+// ==================== PWA INSTALLATION - CODE SIMPLIFIÉ ====================
 let deferredPrompt;
-const installButton = document.createElement('button');
-
-function showInstallButton() {
-  installButton.textContent = '📱 Installer l\'app';
-  installButton.className = 'btn primary';
-  installButton.style.margin = '10px';
-  installButton.style.display = 'none'; // Caché par défaut
-  
-  installButton.onclick = async () => {
-    if (!deferredPrompt) return;
-    
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      console.log('App installée');
-      installButton.style.display = 'none';
-    }
-    
-    deferredPrompt = null;
-  };
-  
-  // Ajouter au header
-  const header = document.querySelector('header');
-  if (header) {
-    header.appendChild(installButton);
-  }
-}
+const installButton = document.getElementById('installButton');
 
 window.addEventListener('beforeinstallprompt', (e) => {
+  // Empêcher l'affichage automatique
   e.preventDefault();
+  // Sauvegarder l'événement
   deferredPrompt = e;
-  
-  // Afficher le bouton IMMÉDIATEMENT
+  // AFFICHER le bouton d'installation
   if (installButton) {
     installButton.style.display = 'block';
   }
+  
+  // Gestion du clic sur le bouton
+  installButton.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    
+    // Masquer le bouton
+    installButton.style.display = 'none';
+    
+    // Afficher l'invite d'installation
+    deferredPrompt.prompt();
+    
+    // Attendre la réponse de l'utilisateur
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('✅ Application installée');
+    } else {
+      console.log('❌ Installation refusée');
+      // Re-afficher le bouton si refusé
+      installButton.style.display = 'block';
+    }
+    
+    // Nettoyer
+    deferredPrompt = null;
+  });
 });
 
-// Initialiser le bouton au chargement
-document.addEventListener('DOMContentLoaded', () => {
-  showInstallButton();
+// Cacher le bouton si l'app est déjà installée
+window.addEventListener('appinstalled', () => {
+  console.log('🎉 PWA installé avec succès!');
+  if (installButton) {
+    installButton.style.display = 'none';
+  }
+  deferredPrompt = null;
 });
 
-// Service Worker - VERSION SIMPLIFIÉE
+// Vérifier au chargement si déjà installé
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  if (installButton) {
+    installButton.style.display = 'none';
+  }
+}
+
+// ==================== SERVICE WORKER SIMPLIFIÉ ====================
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
-    .then(registration => console.log('SW registered:', registration))
-    .catch(error => console.log('SW failed:', error));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('✅ Service Worker enregistré:', registration);
+      })
+      .catch(error => {
+        console.log('❌ Échec Service Worker:', error);
+      });
+  });
 }
 </script>
 </body>
 </html>
+
 
 
 
