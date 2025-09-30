@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#6ee7b7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JNK-PO">
+<link rel="apple-touch-icon" href="icons/icon-152x152.png">
+<link rel="manifest" href="manifest.json">
+<title>JNK-PO — Gestion de base politique</title>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --accent:#6ee7b7; --muted:#9aa4b2;
+    --glass: rgba(255,255,255,0.03);
+    --success:#10b981; --danger:#ef4444;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background: linear-gradient(180deg,#071029 0%, #071a2a 60%);
+    color:#e6eef6; min-height:100vh;
+  }
+  .app{
+    display:grid; grid-template-columns: 300px 1fr; gap:20px; padding:28px; max-width:1200px; margin:24px auto;
+  }
+  header{grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:16px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{
+    width:48px;height:48px;background:linear-gradient(135deg,var(--accent),#60a5fa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#062024;
+  }
+  h1{font-size:18px;margin:0}
+  .nav{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:12px;padding:18px;height:calc(100vh - 140px); overflow:auto; box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  }
+  .menu-section{margin-bottom:14px}
+  .menu-section h3{font-size:12px;color:var(--muted);margin:0 0 10px}
+  .menu-btn{
+    display:block;padding:10px 14px;border-radius:8px;margin-bottom:8px;color:inherit;text-decoration:none;
+    background:transparent;border:1px solid rgba(255,255,255,0.03);cursor:pointer;text-align:left;
+  }
+  .menu-btn.active{background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));border-color:rgba(255,255,255,0.06)}
+  main{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:14px;padding:22px; min-height:calc(100vh - 140px); box-shadow: 0 8px 26px rgba(2,6,23,0.6); overflow:auto;
+  }
+  .card{background:var(--card); border-radius:12px; padding:18px; margin-bottom:18px; box-shadow: 0 6px 14px rgba(2,6,23,0.5)}
+  label{display:block;font-size:13px;color:var(--muted); margin-bottom:6px}
+  input[type="text"], input[type="email"], input[type="date"], input[type="month"], input[type="number"], textarea, select{
+    width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:inherit; font-size:14px;
+  }
+  textarea{min-height:100px; resize:vertical}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .actions{display:flex; gap:10px; margin-top:12px}
+  .btn{padding:10px 14px;border-radius:10px;border:0; cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),#60a5fa); color:#062024; font-weight:600}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06); color:var(--muted)}
+  .small{font-size:13px;padding:8px 10px;border-radius:8px}
+  .hint{font-size:12px;color:var(--muted); margin-top:6px}
+  .result-block{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  .search-row{display:flex; gap:8px}
+  .badge{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);font-size:12px}
+  footer{font-size:12px;color:var(--muted); margin-top:10px}
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);z-index:50}
+  .modal{width:880px;max-width:95%;background:linear-gradient(180deg,#071220,#081827);border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
+  .modal h2{margin:0 0 8px}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:900px){ .app{grid-template-columns:1fr; padding:14px} .nav{height:auto}}
+  /* Style pour les menus déroulants des bases */
+  select option{background:var(--card); color:inherit}
+  textarea { min-height:120px; padding:12px; font-size:14px; }
+  input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+</style>
+</head>
+<body>
+<div id="loginScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;">
+  <div class="card" style="width:320px;text-align:center">
+    <h2>Connexion</h2>
+    <label for="pwdInput">Mot de passe</label>
+    <input type="password" id="pwdInput" placeholder="Entrez le mot de passe" />
+    <div class="actions" style="margin-top:12px;justify-content:center">
+      <button id="btnLogin" class="btn primary">Connecter</button>
+    </div>
+    <div id="loginStatus" class="hint" style="margin-top:8px"></div>
+  </div>
+</div>
+<div class="app" style="display:none" id="appMain">
+  <header>
+    <div class="brand">
+      <div class="logo">JNK</div>
+      <div>
+        <h1>JNK-PO — Gestion de Base Politique</h1>
+        <div class="hint">Application de gestion — Hon. Josue Nkomo Kabemba</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="badge" id="serverStatus">Connexion serveur : inconnue</div>
+      <div style="color:var(--muted);font-size:13px">v1.0</div>
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="menu">
+    <div class="menu-section">
+      <h3>Opérations</h3>
+      <button class="menu-btn active" data-page="addBase">➕ Ajouter une Base</button>
+      <button class="menu-btn" data-page="addContact">➕ Ajouter un contact</button>
+      <button class="menu-btn" data-page="addPromise">📝 Enregistrer une promesse</button>
+      <button class="menu-btn" data-page="addAction">✅ Enregistrer une action</button>
+      <button class="menu-btn" data-page="addEvent">📅 Enregistrer un événement</button>
+    </div>
+
+    <div class="menu-section">
+      <h3>Commandes</h3>
+      <button class="menu-btn" data-page="cmdSearchBase">🔎 Recherche une base</button>
+      <button class="menu-btn" data-page="cmdSearchContact">🔎 Recherche de contact</button>
+      <button class="menu-btn" data-page="cmdListBases">📨 Liste de base (PDF)</button>
+      <button class="menu-btn" data-page="cmdListContacts">📨 Liste de contact (PDF)</button>
+    </div>
+
+    <div style="margin-top:12px;color:var(--muted);font-size:12px">
+      <div>Tout droit réservé</div>
+      <div class="hint">Cette application est conçue et montée par le service Jurisconsultes-Rdc</div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- Pages will be injected here -->
+  </main>
+</div>
+
+<!-- Modal review -->
+<div id="modalBackdrop" class="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2 id="modalTitle">Revoir</h2>
+    <div id="modalContent"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
+      <button id="modalEdit" class="btn ghost">Modifier</button>
+      <button id="modalSend" class="btn primary">Envoyer</button>
+      <button id="modalClose" class="btn small">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========================
+   Login logic
+   ======================== */
+const loginScreen = document.getElementById("loginScreen");
+const appMain = document.getElementById("appMain");
+const btnLogin = document.getElementById("btnLogin");
+const pwdInput = document.getElementById("pwdInput");
+const loginStatus = document.getElementById("loginStatus");
+
+btnLogin.addEventListener("click", async ()=>{
+  const pwd = pwdInput.value.trim();
+  if(!pwd){ loginStatus.textContent = "Veuillez entrer le mot de passe"; return; }
+
+  // désactiver bouton et afficher chargement
+  btnLogin.disabled = true;
+  btnLogin.textContent = "Connexion...";
+  loginStatus.textContent = "Vérification en cours...";
+
+  const r = await serverRequest("checkPwd",{pwd});
+  
+  if(r && r.ok && r.valid){
+    loginStatus.textContent = "Accès accordé ✅";
+    setTimeout(()=>{
+      loginScreen.style.display = "none";
+      appMain.style.display = "grid"; // ou flex selon votre layout
+      initApp(); // ⚡ démarre l’application seulement après validation
+    },500);
+  } else {
+    loginStatus.textContent = "Mot de passe incorrect ❌";
+    btnLogin.disabled = false;
+    btnLogin.textContent = "Connecter";
+  }
+});
+
+/* ========================
+   Configuration (à remplacer)
+   ======================== */
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyY5KonAR-GXFnkHWGEhWD7Hg-Eh2bLSJr2o4iwmniS_mazfWttdAFBe_RdhHiKQcCUQg/exec'; // <-- Remplacez par votre URL
+/* ======================== */
+
+const main = document.getElementById('main');
+const menuButtons = document.querySelectorAll('.menu-btn');
+const serverStatusEl = document.getElementById('serverStatus');
+
+let appState = {
+  bases: [], // liste de noms de base
+  numbers: {}, // next numbers cached
+  currentPage: 'addBase',
+  currentFormData: null // used for review modal
+};
+
+// helper: send request to server
+async function serverRequest(action, payload = {}) {
+  try{
+    const params = new URLSearchParams({action, ...payload});
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: params.toString()
+    });
+    const text = await res.text();
+    // try parse json safely
+    try { return JSON.parse(text); } catch(e){ return {ok:false, raw:text}; }
+  } catch(err) {
+    return { ok:false, error: err.message || err };
+  }
+}
+
+/* --- Initialization: load base list & server ping --- */
+async function initApp(){
+  // ping server & load bases
+  serverStatusEl.textContent = 'Connexion serveur : en cours...';
+  const r = await serverRequest('getBases');
+  if(r && r.ok){
+    appState.bases = r.bases || [];
+    serverStatusEl.textContent = 'Connexion serveur : OK';
+  } else {
+    serverStatusEl.textContent = 'Erreur serveur';
+    console.error('server getBases error', r);
+  }
+  // render default page
+  renderPage('addBase');
+}
+initApp();
+
+/* --- Menu navigation --- */
+menuButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=> {
+    menuButtons.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPage(btn.dataset.page);
+  });
+});
+
+function renderPage(page){
+  appState.currentPage = page;
+  main.innerHTML = '';
+  if(page === 'addBase') renderAddBase();
+  else if(page === 'addContact') renderAddContact();
+  else if(page === 'addPromise') renderAddPromise();
+  else if(page === 'addAction') renderAddAction();
+  else if(page === 'addEvent') renderAddEvent();
+  else if(page === 'cmdSearchBase') renderCmdSearchBase();
+  else if(page === 'cmdSearchContact') renderCmdSearchContact();
+  else if(page === 'cmdListBases') renderCmdListBases();
+  else if(page === 'cmdListContacts') renderCmdListContacts();
+}
+
+/* ------------------------------
+   Page: Ajouter une Base
+   ------------------------------ */
+function renderAddBase(){
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <h2>Ajouter une Base</h2>
+    <div class="hint">Remplissez les informations de la base.</div>
+    <div style="height:12px"></div>
+    <div id="formAddBase"></div>
+  `;
+  main.appendChild(card);
+
+  const container = document.getElementById('formAddBase');
+  container.innerHTML = `
+    <label>N° d’ordre (auto)</label>
+    <input type="text" id="Q1" readonly />
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label>Nom de la Base *</label>
+        <input type="text" id="Q2" required />
+      </div>
+      <div>
+        <label>Nom du Premier Contact *</label>
+        <input type="text" id="Q3" required />
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label>N° Tél. Premier Contact (9 chiffres)</label>
+        <input type="text" id="Q4" maxlength="9" pattern="\\d{9}" />
+      </div>
+      <div>
+        <label>Email Premier Contact</label>
+        <input type="email" id="Q5" />
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <label>Observations</label>
+      <textarea id="Q6"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="reviewAddBase">Revoir</button>
+      <div class="hint" style="margin-left:auto">Les champs marqués * sont obligatoires</div>
+    </div>
+  `;
+
+  // load next number
+  (async ()=>{
+    const r = await serverRequest('getNextBaseNumber');
+    if(r && r.ok){
+      document.getElementById('Q1').value = r.next || '';
+    } else {
+      document.getElementById('Q1').value = '';
+    }
+  })();
+
+  document.getElementById('reviewAddBase').addEventListener('click', ()=>{
+    const data = {
+      Q1: document.getElementById('Q1').value.trim(),
+      Q2: document.getElementById('Q2').value.trim(),
+      Q3: document.getElementById('Q3').value.trim(),
+      Q4: document.getElementById('Q4').value.trim(),
+      Q5: document.getElementById('Q5').value.trim(),
+      Q6: document.getElementById('Q6').value.trim(),
+      type: 'base'
+    };
+    // validations
+    if(!data.Q1 || !data.Q2 || !data.Q3){
+      alert('Veuillez remplir les champs obligatoires (N° d’ordre, Nom de la base, Nom du 1er contact).');
+      return;
+    }
+    if(data.Q4 && !/^\d{9}$/.test(data.Q4)){ alert('Le téléphone doit avoir exactement 9 chiffres'); return; }
+    if(data.Q5 && !/^[^@]+@[^@]+\.[^@]+$/.test(data.Q5)){ alert('Email invalide'); return; }
+    openReviewModal('Revoir Base', data, async (confirmed)=>{
+      if(confirmed){
+        await sendToServer('submitBase', {
+          Q1:data.Q1, Q2:data.Q2, Q3:data.Q3, Q4:data.Q4, Q5:data.Q5, Q6:data.Q6
+        });
+      }
+    });
+  });
+}
+
+/* ------------------------------
+   Page: Ajouter contact
+   ------------------------------ */
+function renderAddContact(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `
+    <h2>Ajouter une personne de contact</h2>
+    <div class="hint">Assignez le contact à une base existante.</div>
+    <div id="formAddContact"></div>
+  `;
+  main.appendChild(card);
+  const container = document.getElementById('formAddContact');
+  const baseOptions = appState.bases.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  container.innerHTML = `
+    <label>Nom du contact *</label>
+    <input type="text" id="Q7" required />
+    <div style="margin-top:10px">
+      <label>Base d'attache *</label>
+      <select id="Q8">${baseOptions}</select>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div><label>Téléphone (9 chiffres)</label><input id="Q9" maxlength="9" /></div>
+      <div><label>Email</label><input id="Q10" type="email" /></div>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="reviewAddContact">Revoir</button>
+    </div>
+  `;
+  document.getElementById('reviewAddContact').addEventListener('click', ()=>{
+    const data = {
+      Q7: document.getElementById('Q7').value.trim(),
+      Q8: document.getElementById('Q8').value,
+      Q9: document.getElementById('Q9').value.trim(),
+      Q10: document.getElementById('Q10').value.trim(),
+      type: 'contact'
+    };
+    if(!data.Q7 || !data.Q8){ alert('Nom du contact et base d\'attache sont obligatoires'); return; }
+    if(data.Q9 && !/^\d{9}$/.test(data.Q9)){ alert('Téléphone invalide (9 chiffres)'); return; }
+    if(data.Q10 && !/^[^@]+@[^@]+\.[^@]+$/.test(data.Q10)){ alert('Email invalide'); return; }
+    openReviewModal('Revoir contact', data, async (confirmed)=>{
+      if(confirmed) await sendToServer('submitContact', {
+        Q7:data.Q7, Q8:data.Q8, Q9:data.Q9, Q10:data.Q10
+      });
+    });
+  });
+}
+
+/* ------------------------------
+   Page: Promesse faite
+   ------------------------------ */
+function renderAddPromise(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `<h2>Enregistrer une promesse</h2><div id="formAddPromise"></div>`;
+  main.appendChild(card);
+  const container = document.getElementById('formAddPromise');
+  const baseOptions = appState.bases.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  container.innerHTML = `
+    <label>N° de la promesse (auto)</label>
+    <input type="text" id="Q11" readonly />
+    <div style="margin-top:10px">
+      <label>Nature et consistance *</label>
+      <textarea id="Q12" rows="5" style="resize:vertical"></textarea>
+    </div>
+    <div style="margin-top:10px">
+      <label>Base bénéficiaire *</label>
+      <select id="Q13">${baseOptions}</select>
+    </div>
+    <div style="margin-top:10px">
+      <label>Personne bénéficiaire (facultatif)</label>
+      <input id="Q14" />
+    </div>
+    <div style="margin-top:10px">
+      <label>Moment possible de réalisation *</label>
+      <select id="Q15">
+        <option value="">--Choisir--</option>
+        <option value="date">Date</option>
+        <option value="mois">Mois</option>
+        <option value="annee">Année</option>
+      </select>
+    </div>
+
+    <div id="conditionalPromise" style="margin-top:10px"></div>
+
+    <div class="actions">
+      <button class="btn ghost" id="reviewAddPromise">Revoir</button>
+    </div>
+  `;
+
+  (async ()=>{
+    const r = await serverRequest('getNextPromiseNumber');
+    if(r && r.ok) document.getElementById('Q11').value = r.next || '';
+  })();
+
+  document.getElementById('Q15').addEventListener('change', (e)=>{
+    const val = e.target.value;
+    const container = document.getElementById('conditionalPromise');
+    container.innerHTML = '';
+    if(val === 'date'){
+      container.innerHTML = `<label>Date de réalisation *</label><input type="date" id="Q16" />`;
+    } else if(val === 'mois'){
+      container.innerHTML = `<label>Mois & Année *</label><input type="month" id="Q17" />`;
+    } else if(val === 'annee'){
+      container.innerHTML = `<label>Année *</label><input type="number" id="Q18" min="2025" placeholder="2025" />`;
+    }
+  });
+
+  document.getElementById('reviewAddPromise').addEventListener('click', ()=>{
+    const Q11 = document.getElementById('Q11').value.trim();
+    const Q12 = document.getElementById('Q12').value.trim();
+    const Q13 = document.getElementById('Q13').value;
+    const Q14 = document.getElementById('Q14').value.trim();
+    const Q15 = document.getElementById('Q15').value;
+    const Q16 = document.getElementById('Q16') ? document.getElementById('Q16').value : '';
+    const Q17 = document.getElementById('Q17') ? document.getElementById('Q17').value : '';
+    const Q18 = document.getElementById('Q18') ? document.getElementById('Q18').value : '';
+    if(!Q11 || !Q12 || !Q13 || !Q15){ alert('Remplissez les champs obligatoires'); return; }
+    // validate conditional
+    if(Q15 === 'date'){
+      if(!Q16) { alert('La date est obligatoire pour ce choix'); return; }
+      if(new Date(Q16) < new Date().setHours(0,0,0,0)){ alert('Date passée non autorisée'); return; }
+    } else if(Q15 === 'mois'){
+      if(!Q17) { alert('Mois & année obligatoires'); return; }
+      // month format YYYY-MM
+      const [y,m] = Q17.split('-').map(Number);
+      const d = new Date(y, m-1, 1);
+      if(d < new Date(new Date().getFullYear(), new Date().getMonth(),1)) { alert('Mois passé non autorisé'); return; }
+    } else if(Q15 === 'annee'){
+      if(!Q18) { alert('Année obligatoire'); return; }
+      if(Number(Q18) < new Date().getFullYear()){ alert('Année passée non autorisée'); return; }
+    }
+    const payload = {Q11,Q12,Q13,Q14,Q15,Q16,Q17,Q18,type:'promise'};
+    openReviewModal('Revoir promesse', payload, async (confirmed)=>{
+      if(confirmed) await sendToServer('submitPromise', {
+        Q11,Q12,Q13,Q14,Q15,Q16,Q17,Q18
+      });
+    });
+  });
+
+}
+
+/* ------------------------------
+   Page: Action réalisée
+   ------------------------------ */
+function renderAddAction(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `<h2>Enregistrer une action réalisée</h2><div id="formAddAction"></div>`;
+  main.appendChild(card);
+  const container = document.getElementById('formAddAction');
+  const baseOptions = appState.bases.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  container.innerHTML = `
+    <label>N° de l'action (auto)</label><input id="Q19" readonly />
+    <div style="margin-top:10px"><label>Nature et consistance *</label><textarea id="Q20" rows="5" style="resize:vertical"></textarea></div>
+    <div style="margin-top:10px"><label>Base bénéficiaire *</label><select id="Q21">${baseOptions}</select></div>
+    <div style="margin-top:10px"><label>Personne bénéficiaire directe</label><input id="Q22" /></div>
+    <div class="row" style="margin-top:10px">
+      <div><label>Date de réalisation *</label><input id="Q23" type="date" /></div>
+      <div><label>N° de la promesse réalisée (facultatif)</label><input id="Q24" type="number" /></div>
+    </div>
+    <div class="actions"><button class="btn ghost" id="reviewAddAction">Revoir</button></div>
+  `;
+  (async ()=>{
+    const r = await serverRequest('getNextActionNumber');
+    if(r && r.ok) document.getElementById('Q19').value = r.next || '';
+  })();
+
+  document.getElementById('reviewAddAction').addEventListener('click', ()=>{
+    const Q19 = document.getElementById('Q19').value.trim();
+    const Q20 = document.getElementById('Q20').value.trim();
+    const Q21 = document.getElementById('Q21').value;
+    const Q22 = document.getElementById('Q22').value.trim();
+    const Q23 = document.getElementById('Q23').value;
+    const Q24 = document.getElementById('Q24').value.trim();
+    if(!Q19 || !Q20 || !Q21 || !Q23){ alert('Remplissez les champs obligatoires'); return; }
+    if(new Date(Q23) > new Date()){ /* allow past only? prompt didn't forbid future; but keep as is */ }
+    openReviewModal('Revoir action', {Q19,Q20,Q21,Q22,Q23,Q24,type:'action'}, async (confirmed)=>{
+      if(confirmed) await sendToServer('submitAction',{Q19,Q20,Q21,Q22,Q23,Q24});
+    });
+  });
+}
+
+/* ------------------------------
+   Page: Evénement
+   ------------------------------ */
+function renderAddEvent(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `<h2>Enregistrer un événement</h2><div id="formAddEvent"></div>`;
+  main.appendChild(card);
+  const container = document.getElementById('formAddEvent');
+  const baseOptions = appState.bases.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  container.innerHTML = `
+    <label>N° d’événement (auto)</label><input id="Q25" readonly />
+    <div style="margin-top:10px"><label>Base bénéficiaire *</label><select id="Q26">${baseOptions}</select></div>
+    <div style="margin-top:10px"><label>Nature et consistance *</label><textarea id="Q27" rows="5" style="resize:vertical"></textarea></div>
+    <div style="margin-top:10px" class="row">
+      <div><label>Date de l'événement *</label><input id="Q28" type="date" /></div>
+      <div><label>Possibles actions à mener</label><textarea id="Q29" rows="5" style="resize:vertical"></textarea></div>
+    </div>
+    <div class="actions"><button class="btn ghost" id="reviewAddEvent">Revoir</button></div>
+  `;
+  (async ()=>{
+    const r = await serverRequest('getNextEventNumber');
+    if(r && r.ok) document.getElementById('Q25').value = r.next || '';
+  })();
+
+  document.getElementById('reviewAddEvent').addEventListener('click', ()=>{
+    const Q25 = document.getElementById('Q25').value.trim();
+    const Q26 = document.getElementById('Q26').value;
+    const Q27 = document.getElementById('Q27').value.trim();
+    const Q28 = document.getElementById('Q28').value;
+    const Q29 = document.getElementById('Q29').value.trim();
+    if(!Q25 || !Q26 || !Q27 || !Q28){ alert('Remplissez les champs obligatoires'); return; }
+    openReviewModal('Revoir événement', {Q25,Q26,Q27,Q28,Q29,type:'event'}, async (confirmed)=>{
+      if(confirmed) await sendToServer('submitEvent',{Q25,Q26,Q27,Q28,Q29});
+    });
+  });
+}
+
+/* ------------------------------
+   Commandes: Recherche base
+   ------------------------------ */
+function renderCmdSearchBase(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `
+    <h2>Recherche une base</h2>
+    <div class="hint">Entrez le nom de la base et cliquez Afficher — retourne colonnes A:I</div>
+    <div style="height:10px"></div>
+    <div class="search-row">
+      <input id="searchBaseName" placeholder="Nom de la base..." />
+      <button class="btn primary" id="btnSearchBase">Afficher</button>
+    </div>
+    <div id="searchBaseResult" style="margin-top:12px"></div>
+  `;
+  main.appendChild(card);
+  document.getElementById('btnSearchBase').addEventListener('click', async ()=>{
+    const name = document.getElementById('searchBaseName').value.trim();
+    if(!name){ alert('Entrez un nom'); return; }
+    const r = await serverRequest('searchBaseByName',{name});
+    const el = document.getElementById('searchBaseResult');
+    el.innerHTML = '';
+    if(r && r.ok && r.rows && r.rows.length){
+      r.rows.forEach(row=>{
+        const block = document.createElement('div'); block.className='result-block'; block.style.marginBottom='8px';
+        block.innerHTML = `<pre style="white-space:pre-wrap;margin:0">${escapeHtml(JSON.stringify(row))}</pre>`;
+        el.appendChild(block);
+      });
+    } else {
+      el.innerHTML = `<div class="hint">Aucun résultat</div>`;
+    }
+  });
+}
+
+/* ------------------------------
+   Commandes: Recherche contact
+   ------------------------------ */
+function renderCmdSearchContact(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `
+    <h2>Recherche un contact</h2>
+    <div class="hint">Entrez le nom du contact et cliquez Afficher — retourne colonnes K:N</div>
+    <div style="height:10px"></div>
+    <div class="search-row">
+      <input id="searchContactName" placeholder="Nom du contact..." />
+      <button class="btn primary" id="btnSearchContact">Afficher</button>
+    </div>
+    <div id="searchContactResult" style="margin-top:12px"></div>
+  `;
+  main.appendChild(card);
+  document.getElementById('btnSearchContact').addEventListener('click', async ()=>{
+    const name = document.getElementById('searchContactName').value.trim();
+    if(!name){ alert('Entrez un nom'); return; }
+    const r = await serverRequest('searchContactByName',{name});
+    const el = document.getElementById('searchContactResult'); el.innerHTML='';
+    if(r && r.ok && r.rows && r.rows.length){
+      r.rows.forEach(row=>{
+        const block = document.createElement('div'); block.className='result-block'; block.style.marginBottom='8px';
+        block.innerHTML = `<pre style="white-space:pre-wrap;margin:0">${escapeHtml(JSON.stringify(row))}</pre>`;
+        el.appendChild(block);
+      });
+    } else {
+      el.innerHTML = `<div class="hint">Aucun résultat</div>`;
+    }
+  });
+}
+
+/* ------------------------------
+   Commandes: Liste de base (PDF)
+   ------------------------------ */
+function renderCmdListBases(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `
+    <h2>Commander la liste de bases (PDF)</h2>
+    <div class="hint">Entrez l'email destinataire — le serveur enregistrera en C2, créera un PDF et l'enverra.</div>
+    <div style="height:10px"></div>
+    <div class="search-row">
+      <input id="listBasesEmail" placeholder="adresse@example.com" />
+      <button class="btn primary" id="btnListBases">Commander la liste</button>
+    </div>
+    <div id="listBasesStatus" style="margin-top:12px"></div>
+  `;
+  main.appendChild(card);
+  document.getElementById('btnListBases').addEventListener('click', async ()=>{
+    const email = document.getElementById('listBasesEmail').value.trim();
+    if(!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)){ alert('Email invalide'); return; }
+    const statusEl = document.getElementById('listBasesStatus'); statusEl.textContent = 'Envoi de la commande...';
+    const r = await serverRequest('requestListBases',{email});
+    if(r && r.ok){
+      statusEl.textContent = 'Commande envoyée. PDF en cours de création et envoi.';
+    } else {
+      statusEl.textContent = 'Erreur : ' + (r && r.error ? r.error : 'serveur');
+    }
+  });
+}
+
+/* ------------------------------
+   Commandes: Liste de contacts (PDF)
+   ------------------------------ */
+function renderCmdListContacts(){
+  const card = document.createElement('div'); card.className='card';
+  card.innerHTML = `
+    <h2>Commander la liste de contacts (PDF)</h2>
+    <div class="hint">Entrez l'email destinataire — le serveur enregistrera en D2, créera un PDF et l'enverra.</div>
+    <div style="height:10px"></div>
+    <div class="search-row">
+      <input id="listContactsEmail" placeholder="adresse@example.com" />
+      <button class="btn primary" id="btnListContacts">Commander la liste</button>
+    </div>
+    <div id="listContactsStatus" style="margin-top:12px"></div>
+  `;
+  main.appendChild(card);
+  document.getElementById('btnListContacts').addEventListener('click', async ()=>{
+    const email = document.getElementById('listContactsEmail').value.trim();
+    if(!email || !/^[^@]+@[^@]+\.[^@]+$/.test(email)){ alert('Email invalide'); return; }
+    const statusEl = document.getElementById('listContactsStatus'); statusEl.textContent = 'Envoi de la commande...';
+    const r = await serverRequest('requestListContacts',{email});
+    if(r && r.ok){
+      statusEl.textContent = 'Commande envoyée. PDF en cours de création et envoi.';
+    } else {
+      statusEl.textContent = 'Erreur : ' + (r && r.error ? r.error : 'serveur');
+    }
+  });
+}
+
+/* ------------------------------
+   Review Modal
+   ------------------------------ */
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalTitle = document.getElementById('modalTitle');
+const modalContent = document.getElementById('modalContent');
+const modalEdit = document.getElementById('modalEdit');
+const modalSend = document.getElementById('modalSend');
+const modalClose = document.getElementById('modalClose');
+
+function openReviewModal(title, data, onConfirm){
+  appState.currentFormData = {data, onConfirm};
+  modalTitle.textContent = title;
+  modalContent.innerHTML = renderDataForReview(data);
+  modalBackdrop.style.display = 'flex';
+  modalEdit.onclick = ()=>{ modalBackdrop.style.display='none'; if(data.type) { /* leave for user to change inputs */ } };
+  modalClose.onclick = ()=>{ modalBackdrop.style.display='none'; };
+  modalSend.onclick = async ()=>{
+    modalSend.disabled = true;
+    try {
+      const res = await onConfirm(true);
+      // if onConfirm returns something, handle it
+    } catch(e){}
+    modalSend.disabled = false;
+    modalBackdrop.style.display='none';
+  };
+}
+
+function renderDataForReview(data){
+  let html = '<div class="field-grid">';
+  for(const k of Object.keys(data)) {
+    if(k === 'type') continue;
+    html += `<div style="padding:8px"><strong>${escapeHtml(k)}</strong><div style="margin-top:6px;color:var(--muted)">${escapeHtml(String(data[k]||''))}</div></div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ------------------------------
+   sendToServer helper function (shows confirmation)
+   ------------------------------ */
+// Fonction générique d’envoi au serveur avec reset automatique du formulaire
+async function sendToServer(action, payload, formId=null){
+  const btnSend = document.getElementById('modalSend');
+  if(btnSend){
+    btnSend.disabled = true;
+    btnSend.textContent = "Envoi en cours...";
+  }
+
+  try {
+    const r = await serverRequest(action, payload);
+
+    if(r && r.ok){
+      alert("✅ Enregistrement effectué avec succès !");
+
+      // Réinitialiser le formulaire actif
+      resetCurrentForm();
+
+      // Attendre 2 secondes avant retour au tableau de bord
+      setTimeout(()=>{
+        showPage('dashboard');  
+        closeModal();
+      },2000);
+
+    } else {
+      alert("❌ Erreur serveur\n" + (r.error || r.raw || "Inconnu"));
+    }
+
+  } catch(err){
+    alert("❌ Échec de l’envoi\n" + err.message);
+
+  } finally {
+    // Réactiver le bouton si pas de retour réussi
+    if(btnSend){
+      btnSend.disabled = false;
+      btnSend.textContent = "Envoyer";
+    }
+  }
+}
+
+  function resetCurrentForm() {
+  main.innerHTML = ''; // vide la page courante
+  renderPage('addBase'); // retourne au tableau de bord par défaut (page Ajouter une base)
+}
+
+
+/* ------------------------------
+   Utility helpers
+   ------------------------------ */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+</script>
+<script>
+// Enregistrement du Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('SW enregistré: ', registration);
+      })
+      .catch(registrationError => {
+        console.log('Échec enregistrement SW: ', registrationError);
+      });
+  });
+}
+
+// Installation PWA
+let deferredPrompt;
+const installBtn = document.createElement('button');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Empêche l'affichage automatique du prompt
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Crée et affiche un bouton d'installation
+  installBtn.textContent = 'Installer l\'app';
+  installBtn.className = 'btn primary';
+  installBtn.style.position = 'fixed';
+  installBtn.style.bottom = '20px';
+  installBtn.style.right = '20px';
+  installBtn.style.zIndex = '1000';
+  
+  installBtn.addEventListener('click', () => {
+    // Affiche le prompt d'installation
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Installation acceptée');
+      }
+      deferredPrompt = null;
+    });
+  });
+  
+  document.body.appendChild(installBtn);
+});
+
+window.addEventListener('appinstalled', (evt) => {
+  // Masque le bouton après installation
+  installBtn.style.display = 'none';
+  console.log('App installée');
+});
+</script>
+</body>
+</html>
