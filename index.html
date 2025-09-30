@@ -3,9 +3,23 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  
+<!-- PWA Meta Tags -->
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0f1724">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="theme-color" content="#6ee7b7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JNK-PO">
+<link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+
+<!-- Viewport amélioré -->
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, viewport-fit=cover">
+
+<!-- Préchargement des polices -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
 <title>JNK-PO — Gestion de base politique</title>
 <style>
   :root{
@@ -70,6 +84,23 @@
   select option{background:var(--card); color:inherit}
   textarea { min-height:120px; padding:12px; font-size:14px; }
   input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+  @media (max-width: 768px) {
+  .app { padding: 10px; gap: 12px; }
+  .row { grid-template-columns: 1fr; }
+  header { flex-direction: column; align-items: flex-start; }
+  .nav { height: auto; max-height: 60vh; overflow-y: auto; }
+  }
+  
+  @media (max-width: 480px) {
+    .modal { width: 95%; margin: 10px; }
+    .field-grid { grid-template-columns: 1fr; }
+  }
+  
+  /* Support tactile amélioré */
+  @media (hover: none) and (pointer: coarse) {
+    .btn, .menu-btn { min-height: 44px; }
+    input, select, textarea { font-size: 16px; } /* Évite le zoom iOS */
+  }
 </style>
 </head>
 <body>
@@ -768,41 +799,56 @@ async function sendToServer(action, payload, formId=null){
    ------------------------------ */
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
 </script>
+<!-- Service Worker Registration -->
 <script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").then(
-        (reg) => console.log("✅ Service Worker enregistré", reg.scope),
-        (err) => console.error("❌ Service Worker erreur", err)
-      );
-    });
-  }
-
-  // Gestion du bouton "Installer"
-  let deferredPrompt;
-  const installBtn = document.createElement("button");
-  installBtn.textContent = "📲 Installer l’application";
-  installBtn.style.cssText = "position:fixed;bottom:20px;right:20px;padding:10px 15px;background:#0f1724;color:white;border:none;border-radius:8px;cursor:pointer;z-index:1000;display:none;";
-  document.body.appendChild(installBtn);
-
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = "block"; // bouton visible
+// Enregistrement du Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('SW enregistré: ', registration);
+      })
+      .catch(registrationError => {
+        console.log('Échec SW: ', registrationError);
+      });
   });
+}
 
-  installBtn.addEventListener("click", async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log(`Résultat installation: ${outcome}`);
+// Gestion de l'installation PWA
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Optionnel: Afficher un bouton d'installation
+  const installBtn = document.createElement('button');
+  installBtn.textContent = '📱 Installer l\'app';
+  installBtn.className = 'btn primary';
+  installBtn.style.margin = '10px';
+  installBtn.onclick = () => {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choiceResult => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('App installée');
+      }
       deferredPrompt = null;
-      installBtn.style.display = "none";
-    }
-  });
+    });
+  };
+  
+  // Ajouter au header
+  document.querySelector('header').appendChild(installBtn);
+});
+
+// Détection du mode standalone
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    document.body.classList.add('standalone');
+  }
+});
 </script>
 </body>
 </html>
+
 
 
 
