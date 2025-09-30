@@ -773,164 +773,260 @@ async function sendToServer(action, payload, formId=null){
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
 </script>
 <script>
-// Enregistrement du Service Worker
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('SW enregistré: ', registration);
-      
-      // Vérifier si l'app peut être installée
-      checkInstallability();
-    } catch (registrationError) {
-      console.log('Échec enregistrement SW: ', registrationError);
-    }
-  });
-}
-
-let deferredPrompt;
-let installBtn = null;
-
-// Fonction pour vérifier l'installabilité
-function checkInstallability() {
-  // Vérifier si l'app répond aux critères d'installation
-  if (deferredPrompt) {
-    showInstallButton();
-    return;
+// Gestion PWA améliorée
+class PWAInstaller {
+  constructor() {
+    this.deferredPrompt = null;
+    this.installBtn = null;
+    this.hasShownManual = false;
+    
+    this.init();
   }
-  
-  // Vérifier les critères PWA
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  const isInstalled = navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-  
-  if (!isInstalled && isPWAEligible()) {
-    // Créer le bouton après un délai pour s'assurer que la page est chargée
+
+  init() {
+    this.registerServiceWorker();
+    this.setupEventListeners();
+    this.createInstallButton();
+  }
+
+  async registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker enregistré avec succès');
+      } catch (error) {
+        console.log('Échec enregistrement Service Worker:', error);
+      }
+    }
+  }
+
+  setupEventListeners() {
+    // Événement d'installation automatique
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('beforeinstallprompt déclenché');
+      e.preventDefault();
+      this.deferredPrompt = e;
+      this.showInstallButton();
+    });
+
+    // Confirmation d'installation
+    window.addEventListener('appinstalled', () => {
+      console.log('Application installée');
+      this.hideInstallButton();
+      this.deferredPrompt = null;
+    });
+
+    // Afficher le bouton après le chargement
+    window.addEventListener('load', () => {
+      setTimeout(() => this.showInstallButton(), 3000);
+    });
+
+    // Réessayer après interaction utilisateur
+    document.addEventListener('click', () => {
+      if (!this.hasShownManual) {
+        setTimeout(() => this.showInstallButton(), 1000);
+      }
+    });
+  }
+
+  createInstallButton() {
+    if (this.installBtn) return;
+
+    this.installBtn = document.createElement('button');
+    this.installBtn.innerHTML = '📱 Installer l\'app';
+    this.installBtn.className = 'btn primary';
+    this.installBtn.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10000;
+      padding: 12px 18px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(110, 231, 183, 0.4);
+      border: 2px solid rgba(110, 231, 183, 0.3);
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    `;
+
+    this.installBtn.addEventListener('click', () => this.installApp());
+    
+    document.body.appendChild(this.installBtn);
+  }
+
+  showInstallButton() {
+    if (!this.installBtn) return;
+
+    // Vérifier si déjà installé
+    if (this.isInstalled()) {
+      this.hideInstallButton();
+      return;
+    }
+
+    this.installBtn.style.opacity = '1';
+    this.installBtn.style.transform = 'translateY(0)';
+    this.installBtn.style.pointerEvents = 'auto';
+    this.hasShownManual = true;
+
+    // Cacher automatiquement après 30 secondes
     setTimeout(() => {
-      createInstallButton();
-    }, 3000);
+      if (this.installBtn && !this.deferredPrompt) {
+        this.hideInstallButton();
+      }
+    }, 30000);
   }
-}
 
-function isPWAEligible() {
-  return (
-    window.location.protocol === 'https:' &&
-    navigator.serviceWorker &&
-    'BeforeInstallPromptEvent' in window
-  );
-}
-
-function createInstallButton() {
-  if (installBtn) return;
-  
-  installBtn = document.createElement('button');
-  installBtn.textContent = '📱 Installer l\'app';
-  installBtn.className = 'btn primary';
-  installBtn.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 10000;
-    padding: 12px 16px;
-    border-radius: 25px;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    animation: pulse 2s infinite;
-  `;
-  
-  // Ajouter des styles d'animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
+  hideInstallButton() {
+    if (this.installBtn) {
+      this.installBtn.style.opacity = '0';
+      this.installBtn.style.transform = 'translateY(20px)';
+      this.installBtn.style.pointerEvents = 'none';
     }
-  `;
-  document.head.appendChild(style);
-  
-  installBtn.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+  }
+
+  async installApp() {
+    if (this.deferredPrompt) {
+      // Installation automatique
+      this.deferredPrompt.prompt();
+      const { outcome } = await this.deferredPrompt.userChoice;
       
       if (outcome === 'accepted') {
         console.log('Utilisateur a accepté l\'installation');
-        hideInstallButton();
+        this.hideInstallButton();
       }
-      
-      deferredPrompt = null;
+      this.deferredPrompt = null;
     } else {
-      // Fallback pour les navigateurs qui ne supportent pas beforeinstallprompt
-      showManualInstallInstructions();
+      // Instructions manuelles
+      this.showManualInstructions();
     }
+  }
+
+  showManualInstructions() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    const isMobile = isIOS || isAndroid;
+
+    let message = '';
+
+    if (isIOS) {
+      message = `Pour installer l'application :
+1. Appuyez sur le bouton Partager (📤)
+2. Faites défiler vers le bas
+3. Sélectionnez "Sur l'écran d'accueil"`;
+    } else if (isAndroid) {
+      message = `Pour installer l'application :
+1. Appuyez sur le menu (⋮)
+2. Sélectionnez "Ajouter à l'écran d'accueil"
+3. Confirmez l'installation`;
+    } else {
+      message = `Pour installer l'application :
+1. Cliquez sur le menu (⋮) en haut à droite
+2. Sélectionnez "Installer l'application"
+3. Confirmez l'installation`;
+    }
+
+    // Créer une modal pour les instructions
+    this.createInstructionModal(message, isMobile);
+  }
+
+  createInstructionModal(message, isMobile) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(2, 6, 23, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      backdrop-filter: blur(5px);
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: linear-gradient(180deg, #071220, #081827);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(110, 231, 183, 0.2);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    `;
+
+    content.innerHTML = `
+      <h3 style="margin: 0 0 16px 0; color: var(--accent);">Installer l'application</h3>
+      <div style="color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 20px; white-space: pre-line;">${message}</div>
+      <button class="btn primary" style="margin-right: 10px;">J'ai compris</button>
+      ${isMobile ? '<button class="btn ghost" style="margin-left: 10px;">Partager</button>' : ''}
+    `;
+
+    const closeBtn = content.querySelector('.btn.primary');
+    closeBtn.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    if (isMobile) {
+      const shareBtn = content.querySelector('.btn.ghost');
+      shareBtn.addEventListener('click', () => {
+        this.shareApp();
+        document.body.removeChild(modal);
+      });
+    }
+
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+
+    // Fermer en cliquant à l'extérieur
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+  }
+
+  shareApp() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'JNK-PO — Gestion de Base Politique',
+        text: 'Application de gestion politique',
+        url: window.location.href,
+      });
+    }
+  }
+
+  isInstalled() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone ||
+           document.referrer.includes('android-app://');
+  }
+}
+
+// Démarrer l'installer PWA quand la page est prête
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    new PWAInstaller();
   });
-  
-  document.body.appendChild(installBtn);
+} else {
+  new PWAInstaller();
 }
 
-function showInstallButton() {
-  if (installBtn) {
-    installBtn.style.display = 'block';
-  } else {
-    createInstallButton();
+// Vérifier périodiquement si on peut afficher le bouton
+setInterval(() => {
+  const installer = window.pwaInstaller;
+  if (installer && !installer.hasShownManual) {
+    installer.showInstallButton();
   }
-}
-
-function hideInstallButton() {
-  if (installBtn) {
-    installBtn.style.display = 'none';
-  }
-}
-
-function showManualInstallInstructions() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isAndroid = /Android/.test(navigator.userAgent);
-  
-  let message = '';
-  
-  if (isIOS) {
-    message = 'Pour installer : appuyez sur Partager ⬆️ puis "Sur l\'écran d\'accueil"';
-  } else if (isAndroid) {
-    message = 'Pour installer : menu ⋮ → "Ajouter à l\'écran d\'accueil"';
-  } else {
-    message = 'Pour installer : menu ⋮ → "Installer l\'application"';
-  }
-  
-  alert(message);
-}
-
-// Événement principal d'installation PWA
-window.addEventListener('beforeinstallprompt', (e) => {
-  console.log('beforeinstallprompt déclenché');
-  e.preventDefault();
-  deferredPrompt = e;
-  showInstallButton();
-});
-
-// Événement lorsque l'app est installée
-window.addEventListener('appinstalled', (evt) => {
-  console.log('Application installée avec succès');
-  hideInstallButton();
-  deferredPrompt = null;
-});
-
-// Vérifier au chargement si on peut afficher le bouton
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(checkInstallability, 2000);
-});
-
-// Réessayer après interaction utilisateur
-document.addEventListener('click', () => {
-  setTimeout(checkInstallability, 1000);
-});
-
-// Vérifier aussi lors du scroll
-window.addEventListener('scroll', () => {
-  if (!installBtn && isPWAEligible()) {
-    setTimeout(checkInstallability, 1000);
-  }
-});
+}, 10000);
 </script>
 </body>
 </html>
+
 
