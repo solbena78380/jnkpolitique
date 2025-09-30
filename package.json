@@ -1,17 +1,8 @@
 {
-  "name": "jnk-po-app",
-  "version": "1.0.0",
-  "description": "Application de gestion politique JNK-PO",
-  "type": "module",
   "scripts": {
-    "build": "node build.js",
-    "dev": "node build.js --watch"
+    "build": "node build.js"
   },
-  "keywords": ["pwa", "political", "management"],
-  "author": "Jurisconsultes-Rdc",
-  "license": "Proprietary",
   "devDependencies": {
-    "workbox-build": "^7.0.0",
     "fs-extra": "^11.1.1"
   }
 }
