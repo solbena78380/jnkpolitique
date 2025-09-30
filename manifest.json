@@ -1,11 +1,12 @@
 {
   "name": "JNK-PO — Gestion de Base Politique",
   "short_name": "JNK-PO",
-  "description": "Application de gestion politique",
+  "description": "Application de gestion politique pour Hon. Josue Nkomo Kabemba",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f1724",
   "theme_color": "#6ee7b7",
+  "orientation": "any",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -13,9 +14,10 @@
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icons/icon-512x512.png", 
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "categories": ["business", "productivity"]
 }
