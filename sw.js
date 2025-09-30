@@ -1,20 +1,17 @@
-// Service Worker fonctionnel
+// Service Worker ultra-simplifié
 const CACHE_NAME = 'jnk-po-v1';
-const urlsToCache = [
-  '/',
-  '/index.html'
-];
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
+self.addEventListener('install', (event) => {
+  console.log('🔄 Service Worker installé');
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
+self.addEventListener('activate', (event) => {
+  console.log('✅ Service Worker activé');
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  // Laisser passer toutes les requêtes (stratégie réseau d'abord)
+  event.respondWith(fetch(event.request));
 });
