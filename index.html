@@ -772,14 +772,38 @@ function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("/sw.js").then(
-        (reg) => console.log("Service Worker enregistré 👍", reg.scope),
-        (err) => console.error("Erreur Service Worker ❌", err)
+        (reg) => console.log("✅ Service Worker enregistré", reg.scope),
+        (err) => console.error("❌ Service Worker erreur", err)
       );
     });
   }
+
+  // Gestion du bouton "Installer"
+  let deferredPrompt;
+  const installBtn = document.createElement("button");
+  installBtn.textContent = "📲 Installer l’application";
+  installBtn.style.cssText = "position:fixed;bottom:20px;right:20px;padding:10px 15px;background:#0f1724;color:white;border:none;border-radius:8px;cursor:pointer;z-index:1000;display:none;";
+  document.body.appendChild(installBtn);
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = "block"; // bouton visible
+  });
+
+  installBtn.addEventListener("click", async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`Résultat installation: ${outcome}`);
+      deferredPrompt = null;
+      installBtn.style.display = "none";
+    }
+  });
 </script>
 </body>
 </html>
+
 
 
 
