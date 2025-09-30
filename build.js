@@ -1,38 +1,20 @@
-import { execSync } from 'child_process';
 import fs from 'fs-extra';
-import { workboxBuild } from 'workbox-build';
 
 // Créer le dossier dist
 await fs.ensureDir('dist');
 
-// Copier et optimiser le fichier HTML principal
-let html = await fs.readFile('src/index.html', 'utf8');
+// Copier le HTML principal
+await fs.copy('src/index.html', 'dist/index.html');
 
-// Minifier le CSS et JS (simplifié)
-html = html.replace(/<style>[\s\S]*?<\/style>/, match => {
-  return match.replace(/\s+/g, ' ').replace(/;?\s*}/g, '}').replace(/\s*{\s*/g, '{');
-});
+// Copier le Service Worker
+await fs.copy('src/sw.js', 'dist/sw.js');
 
-await fs.writeFile('dist/index.html', html);
+// Copier les icônes si elles existent
+if (await fs.pathExists('src/icons')) {
+  await fs.copy('src/icons', 'dist/icons');
+}
 
-// Générer le service worker
-await workboxBuild.generateSW({
-  globDirectory: 'dist',
-  globPatterns: ['**/*.{html,js,css}'],
-  swDest: 'dist/sw.js',
-  clientsClaim: true,
-  skipWaiting: true,
-  runtimeCaching: [{
-    urlPattern: /^https:\/\/script\.googleapis\.com\/.*/i,
-    handler: 'NetworkFirst',
-    options: {
-      cacheName: 'api-cache',
-      expiration: {
-        maxEntries: 50,
-        maxAgeSeconds: 300 // 5 minutes
-      }
-    }
-  }]
-});
+// Copier le manifest
+await fs.copy('src/manifest.json', 'dist/manifest.json');
 
-console.log('Build terminé!');
+console.log('Build terminé! Fichiers copiés:', await fs.readdir('dist'));
